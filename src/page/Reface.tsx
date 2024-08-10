@@ -47,12 +47,31 @@ export const Reface = () => {
             reader.readAsDataURL(file);
         }
     };
+    const [listHistory, setListHistory] = useState({data:[],page:1,page_size:0,total_rows:0})
+    const getListLog = () => {
+        axios.post('http://127.0.0.1:5000/getLogImg', {
+            "page": 1,
+            "page_size": 100,
+        })
+        .then(res => {
+            setListHistory(res.data);
+        })
+        .catch(err => {
+            console.error('Error fetching logs:', err);
+        });
+    } 
     const [resultImg, setResultImg] = useState("/img/faceswap_default.webp");
     const [currentMode, setCurrentMode] = useState('face swap');
     const handleOnChangeMode = (mode: string) => {
         setCurrentMode(mode);
+        if (mode === 'history') {
+            getListLog();
+        }
     };
-
+    const makeBase64 = (src : string) => {
+        let imgSrc: string = "data:image/jpeg;base64," + src;
+        return imgSrc
+    }
     const [loading, setLoading] = useState(false);
     const handleProcess = async (e: any) => {
         e.preventDefault();
@@ -68,7 +87,6 @@ export const Reface = () => {
             let resultImgBase64: string = res.data.result_img;
             let imgSrc: string = "data:image/jpeg;base64," + resultImgBase64;
             setResultImg(imgSrc)
-            console.log(resultImgBase64);
 
         } catch (err) {
             console.log(err)
@@ -77,6 +95,7 @@ export const Reface = () => {
         }
         setLoading(false);
     }
+    
     return (
         <div className="bg-gray-blue h-full min-h-screen">
             <div className="fixed bg-transparent w-full top-0">
@@ -106,7 +125,18 @@ export const Reface = () => {
                         </div>
                         {(currentMode === 'face swap') && (
                             <div className="h-full">
-                                <img className="h-height-image rounded-2xl mx-auto object-contain" src={resultImg} alt="" ></img>
+                                <img className="h-height-image border-2 rounded-2xl mx-auto object-contain" src={resultImg} alt="" ></img>
+                            </div>
+                        )}
+                        {(currentMode==='history') && (
+                            <div className="h-full">
+                                <ul className="h-height-image overflow-y-auto">
+                                    {Object.entries(listHistory.data).map(([key, value]: any) => (
+                                        <li className="p-2 border-b-0.5">
+                                            <img className="h-16" src={makeBase64(value.results_img)}></img>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         )}
                     </div>
