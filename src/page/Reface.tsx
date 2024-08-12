@@ -3,6 +3,8 @@ import Navigation from "../component/Navigation"
 import { Button, Card } from "antd";
 import Meta from "antd/es/card/Meta";
 import axios, { Axios } from "axios";
+import { DeleteOutlined, EyeOutlined } from "@ant-design/icons";
+import Item from "antd/es/list/Item";
 
 export const Reface = () => {
     useEffect(() => {
@@ -47,12 +49,37 @@ export const Reface = () => {
             reader.readAsDataURL(file);
         }
     };
+    const [listHistory, setListHistory] = useState({ data:[{
+        id: 1,
+        results_img: 'data:image/png;base64,...',
+        src_img: 'data:image/png;base64,...',
+        target_img: 'data:image/png;base64,...',
+      },], page: 1, page_size: 0, total_rows: 0 })
+    const getListLog = () => {
+        axios.post('http://127.0.0.1:5000/LogImg', {
+            "page": 1,
+            "page_size": 100,
+        })
+            .then(res => {
+                setListHistory({data : Object.values(res.data.data) , page : res.data.page , page_size : res.data.page_size , total_rows : res.data.total_rows});
+            })
+            .catch(err => {
+                console.error('Error fetching logs:', err);
+            });
+        console.log(listHistory)
+    }
     const [resultImg, setResultImg] = useState("/img/faceswap_default.webp");
     const [currentMode, setCurrentMode] = useState('face swap');
     const handleOnChangeMode = (mode: string) => {
         setCurrentMode(mode);
+        if (mode === 'history') {
+            getListLog();
+        }
     };
-
+    const makeBase64 = (src: string) => {
+        let imgSrc: string = "data:image/jpeg;base64," + src;
+        return imgSrc
+    }
     const [loading, setLoading] = useState(false);
     const handleProcess = async (e: any) => {
         e.preventDefault();
@@ -68,7 +95,6 @@ export const Reface = () => {
             let resultImgBase64: string = res.data.result_img;
             let imgSrc: string = "data:image/jpeg;base64," + resultImgBase64;
             setResultImg(imgSrc)
-            console.log(resultImgBase64);
 
         } catch (err) {
             console.log(err)
@@ -76,6 +102,28 @@ export const Reface = () => {
             setLoading(false);
         }
         setLoading(false);
+    }
+    const viewHistory = (data: any) => {
+        setResultImg(data.result_img);
+        setFaceImgInput(data.src_img);
+        setTargetImgInput(data.target_img);
+        setCurrentMode('face swap')
+        setStateUpLoadFaceImg(true)
+        setStateUpLoadTargetImg(true)
+    }
+    const deleteHistoryItemById = (id : number) => {
+        axios.delete("http://127.0.0.1:5000/LogImg/" + id.toString())
+        .then(response => {
+            console.log(response.data , id );
+        })
+        .catch(error => {
+            console.error(error);
+        });
+        const updatedData = listHistory.data.filter(Item => Item.id !== id);
+        setListHistory(prevListHistory => ({
+            ...prevListHistory,
+            data: updatedData
+        }));
     }
     return (
         <div className="bg-gray-blue h-full min-h-screen">
@@ -106,7 +154,31 @@ export const Reface = () => {
                         </div>
                         {(currentMode === 'face swap') && (
                             <div className="h-full">
-                                <img className="h-height-image rounded-2xl mx-auto object-contain" src={resultImg} alt="" ></img>
+                                {loading && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-opacity-50 z-10">
+                                        <div className="loader border-t-4 border-blue-500 border-solid rounded-full w-8 h-8 animate-spin"></div>
+                                    </div>
+                                )}
+                                <img className={`h-height-image border-2 rounded-2xl mx-auto object-contain transition-opacity duration-300 ${loading ? 'opacity-20' : 'opacity-100'}`} src={resultImg} alt="" ></img>
+                            </div>
+                        )}
+                        {(currentMode === 'history') && (
+                            <div className="h-full">
+                                <ul className="h-height-image overflow-y-auto">
+                                    {listHistory.data.map((value , index) => (
+                                        <li className=" justify-between flex flex-row w-full p-2 border-b-0.5 hover:border-2 hover:rounded-lg">
+                                            <img className="h-16  cursor-pointer " src={makeBase64(value.results_img)}></img>
+                                            <div>
+                                                <EyeOutlined onClick={(e) => viewHistory({
+                                                    result_img: makeBase64(value.results_img),
+                                                    src_img: makeBase64(value.src_img),
+                                                    target_img: makeBase64(value.target_img)
+                                                })} className=" cursor-pointer  p-2" style={{ color: 'white'}} />
+                                                <DeleteOutlined onClick={(e) => deleteHistoryItemById(value.id)} className="cursor-pointer p-2" style={{ color: 'white' }} />
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         )}
                     </div>

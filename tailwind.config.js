@@ -17,6 +17,10 @@ module.exports = {
         'height-image': '500px', // Example value, adjust as needed
         'height-panel': '625px'
       },
+      borderWidth: {
+        '0.5': '0.5px',
+        '3': '3px', 
+      },
     },
   },
   variants: {
