@@ -38,7 +38,7 @@ const Navigation = (props: navProps) => {
   };
 
   return<Menu
-    className='bg-transparent'
+    className='bg-transparent border-b-2 border-white'
     onClick={onClick}
     selectedKeys={[current]}
     mode="horizontal"
